@@ -59,6 +59,7 @@ public class Server extends Thread {
 							out.writeUTF("Thank you for connecting to " + serveClient.getLocalSocketAddress()
 									+ "\nGoodbye!");
 							serveClient.close();
+							return;
 						} 
 						else {
 							// mirror with client until client types close
@@ -67,8 +68,6 @@ public class Server extends Thread {
 							in = new DataInputStream(serveClient.getInputStream());
 						}
 					}
-
-
 				}
 
 				catch(SocketTimeoutException s) {

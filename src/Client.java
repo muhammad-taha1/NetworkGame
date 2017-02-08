@@ -39,15 +39,12 @@ public class Client {
 
 				if (stringForServer.compareToIgnoreCase("close") == 0) {
 					// close client and return from method once close is typed
-					client.close();
 					out = new DataOutputStream(outToServer);
 					out.writeUTF("Goodbye from " + client.getRemoteSocketAddress());
+					client.close();
 					scan.close();
 					break;
 				}
-
-				System.out.println("DEBUG: methods end is reached");
-
 			}
 		}catch(IOException e) {
 			e.printStackTrace();
