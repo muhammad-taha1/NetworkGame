@@ -1,23 +1,30 @@
+package comms;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.util.ArrayList;
 
 
 public class Server extends Thread {
 	private final ServerSocket serverSocket;
+	/// the clientsList is used to keep a list of all clients connected to server. Used for broadcast
+	private final ArrayList<Socket> clientsList;
 
 	public Server(int port) throws IOException {
 		// port number specified when running on cmd as argument
 		serverSocket = new ServerSocket(port);
 		serverSocket.setSoTimeout(100000);
+		clientsList = new ArrayList<Socket>();
 	}
 
 	public void clientActions (final Socket serveClient) {
 		// create a new thread for each connected client
 		// define run functionality for client
+		// the arrayList clientsList keeps a list of clients in server - used for broadcast messages
+		clientsList.add(serveClient);
 		Thread c = new Thread() {
 			@Override
 			public void run() {
@@ -61,6 +68,19 @@ public class Server extends Thread {
 							serveClient.close();
 							return;
 						} 
+//						else if (clientMsg.compareToIgnoreCase("broadcast") == 0) {
+//							out.writeUTF("Please enter your broadcast message - this will be sent to all clients connected to server");
+//							while (in.available() <= 0) {
+//								// wait for client to type
+//							}
+//							String clientMsgBroadcast = in.readUTF();
+//							System.out.println("Client " + clientName + " broadcast message: " + clientMsgBroadcast);
+//							// send the broadcast message to all clients
+//							for (Socket client : clientsList) {
+//								out = new DataOutputStream(client.getOutputStream());
+//								out.writeUTF("Client " + clientName + " broadcast message: " + clientMsgBroadcast);
+//							}
+//						}
 						else {
 							// mirror with client until client types close
 							out = new DataOutputStream(serveClient.getOutputStream());

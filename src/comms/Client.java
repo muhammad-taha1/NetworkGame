@@ -1,3 +1,4 @@
+package comms;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -29,21 +30,31 @@ public class Client {
 
 
 			while (true) {
-				// only close when we type close
-				String stringForServer = scan.nextLine();
-				out = new DataOutputStream(outToServer);
-				out.writeUTF(stringForServer);
 
-				in = new DataInputStream(inFromServer);
-				System.out.println("Server says: " + in.readUTF());
+				// if server says something, print that out. Else read what ever we type and then send it to server
+				if (inFromServer.available() > 0) {
+					in = new DataInputStream(inFromServer);
+					System.out.println("Server says: " + in.readUTF());
+				} 
 
-				if (stringForServer.compareToIgnoreCase("close") == 0) {
-					// close client and return from method once close is typed
+				else {
+
+					// only close when we type close
+					String stringForServer = scan.nextLine();
 					out = new DataOutputStream(outToServer);
-					out.writeUTF("Goodbye from " + client.getRemoteSocketAddress());
-					client.close();
-					scan.close();
-					break;
+					out.writeUTF(stringForServer);
+
+					in = new DataInputStream(inFromServer);
+					System.out.println("Server says: " + in.readUTF());
+
+					if (stringForServer.compareToIgnoreCase("close") == 0) {
+						// close client and return from method once close is typed
+						out = new DataOutputStream(outToServer);
+						out.writeUTF("Goodbye from " + client.getRemoteSocketAddress());
+						client.close();
+						scan.close();
+						break;
+					}
 				}
 			}
 		}catch(IOException e) {
