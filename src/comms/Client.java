@@ -1,4 +1,6 @@
 package comms;
+import gameLogistics.Player;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -27,34 +29,34 @@ public class Client {
 
 			System.out.println("Server says: " + in.readUTF());
 			Scanner scan = new Scanner(System.in);
+			// first scan has to be the server asking us the name
+			String name = scan.nextLine();
+			// send server the name and get a player id
+			out.writeUTF(name);
+			// get id from server
+			int id = in.readInt();
+			// initialize Player object for this client - by default 
+			// initial money = $200
+			Player clientPlayer = new Player(name, id, 200);
 
 
 			while (true) {
 
-				// if server says something, print that out. Else read what ever we type and then send it to server
-				if (inFromServer.available() > 0) {
-					in = new DataInputStream(inFromServer);
-					System.out.println("Server says: " + in.readUTF());
-				} 
-
-				else {
-
-					// only close when we type close
-					String stringForServer = scan.nextLine();
-					out = new DataOutputStream(outToServer);
-					out.writeUTF(stringForServer);
-
-					in = new DataInputStream(inFromServer);
-					System.out.println("Server says: " + in.readUTF());
-
-					if (stringForServer.compareToIgnoreCase("close") == 0) {
-						// close client and return from method once close is typed
-						out = new DataOutputStream(outToServer);
-						out.writeUTF("Goodbye from " + client.getRemoteSocketAddress());
-						client.close();
-						scan.close();
-						break;
+				if (in.available() <= 0) {
+					//wait
+					continue;
+				}
+				else if (in.available() > 0) {
+					// get server msgs
+					String serverMsg = in.readUTF();
+					System.out.println("Server says: " + serverMsg);
+					
+					if (serverMsg.equalsIgnoreCase("TOKEN")) {
+						System.out.println("Please type your decision:");
+						String decision = scan.nextLine();
+						out.writeUTF(decision);
 					}
+
 				}
 			}
 		}catch(IOException e) {
