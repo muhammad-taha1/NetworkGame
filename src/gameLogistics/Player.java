@@ -1,5 +1,7 @@
 package gameLogistics;
 
+import java.util.ArrayList;
+
 import cardLibraries.Card;
 
 /*
@@ -12,13 +14,13 @@ public class Player {
 	private String name;
 	private int id;
 	private int money;
-	private Card[] hand;
+	private ArrayList<Card> hand;
 	private boolean hasFolded;
 	
 	// constructor
 	public Player(String name, int id, int money) {
 		// initialize the hand and assign all arguments
-		this.hand = new Card[2];
+		this.hand = new ArrayList<Card>(2);
 		this.name = name;
 		this.id = id;
 		this.money = money;
@@ -39,12 +41,12 @@ public class Player {
 	
 	// player folds his hand
 	public void fold() {
-		// TODO: Sabit bhai: what will happen when a player folds?
+		hasFolded = true;
 	}
 	
 	// add the card to a player's hand
 	public void addCardToHand(Card card) {
-		// TODO: Sabit bhai: complete
+		hand.add(card);
 	}
 
 	
@@ -61,7 +63,7 @@ public class Player {
 		return money;
 	}
 
-	public Card[] getHand() {
+	public ArrayList<Card> getHand() {
 		return hand;
 	}
 

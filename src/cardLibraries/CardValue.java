@@ -4,6 +4,7 @@ package cardLibraries;
  * This class contains the enums for card values. To be used when forming a card,
  * or comparing 
  */
+
 public enum CardValue {
 	Two(2),
 	Three(3),
@@ -18,10 +19,13 @@ public enum CardValue {
 	Queen(12),
 	King(13),
 	Ace(14);
-	
+
+	private int cardValue;
 	// enum constructor
 	private CardValue (int value) {
-		
+		this.cardValue = value;
 	}
-	
+	public int getCardValue() {
+		return cardValue;
+	}
 }

@@ -1,5 +1,7 @@
 package cardLibraries;
 
+import java.util.ArrayList;
+import java.util.Random;
 import java.util.Stack;
 
 /*
@@ -14,10 +16,22 @@ public class Deck {
 	// of 52 cards, called deck
 	public Deck() {
 		deck = new Stack<Card>();
+
+		ArrayList<Card> tempDeck = new ArrayList<Card>();
 		
-		// TODO: Sabit bhai: fill the deck stack with 52 cards. Use the Card class
-		// to fill the deck with. The deck has to be randomly filled and should 
-		// not contain any duplicate cards
+		for (CardValue val : CardValue.values()) {
+			for (CardSuit suit : CardSuit.values()) {
+				tempDeck.add(new Card(val, suit));
+			}
+		}
+		
+		Random rand = new Random();
+		while (!tempDeck.isEmpty()) {
+			int cardToPushIdx = rand.nextInt(tempDeck.size());
+			Card cardToPush = tempDeck.remove(cardToPushIdx);
+			
+			deck.push(cardToPush);
+		}
 	}
 	
 	// getter for the deck

@@ -8,12 +8,14 @@ import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 
+import cardLibraries.Card;
+import cardLibraries.Deck;
+
 
 public class Server extends Thread {
 	private final ServerSocket serverSocket;
 	/// the clientsList is used to keep a list of all clients connected to server. Used for broadcast
 	private final ArrayList<Socket> clientsList;
-	private String potCards;
 	private int turnTracker = 0;
 	private final int numberOfPlayers = 2;
 
@@ -21,10 +23,7 @@ public class Server extends Thread {
 		// port number specified when running on cmd as argument
 		serverSocket = new ServerSocket(port);
 		serverSocket.setSoTimeout(100000);
-		clientsList = new ArrayList<Socket>();
-		// initialize the deck here, along with pot cards
-		// assume the following pot cards
-		potCards = "AceH, AceC, AceD";		
+		clientsList = new ArrayList<Socket>();	
 	}
 
 	public synchronized String clientActions (final Socket serveClient) {
@@ -60,7 +59,7 @@ public class Server extends Thread {
 		for (Socket client : clientsList) {
 			try {
 				DataOutputStream out = new DataOutputStream(client.getOutputStream());
-				out.writeUTF("last Client's decision: " + clientDecision);
+				out.writeUTF("server says: " + clientDecision);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -98,17 +97,6 @@ public class Server extends Thread {
 					System.out.println("Send id to client");
 					int id = clientsList.size();
 					out.writeInt(id);
-
-					System.out.println("sending card stuff to cleint");
-					// tell client the pot cards - should be a global variable
-					out.writeUTF(potCards);
-
-					// send client its hand cards
-					out.writeUTF("10D, 9D");
-
-					// tell client the pot money. TODO
-					out.writeUTF("potMoney: 0");
-					out.writeUTF("type bet, fold or pass to make a decision");
 
 					latch.countDown();
 					while (true) {
@@ -167,17 +155,108 @@ public class Server extends Thread {
 
 					// allow each client to make decisions, based on turnTracker
 					while (true) {
+
+						Deck deck = new Deck();
+						ArrayList<Card> potCards = new ArrayList<Card>();
+
+						// deal cards to all clients
+						for (Socket client : clientsList) {
+							try {
+								DataOutputStream out = new DataOutputStream(client.getOutputStream());
+								// deal 2 hand cards
+								String handCards = "hand ";
+								handCards += deck.deal().toString();
+								handCards += " ";
+								handCards += deck.deal().toString();
+								out.writeUTF(handCards);
+							} catch (IOException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+						}
+
+						// add 3 initial cards to pot
+						for (int i = 0; i < 3; i++) {
+							potCards.add(deck.deal());
+						}
+
+						// send pot cards to all clients
+						String potCardsString = "";
+						for (Card c : potCards) {
+							potCardsString += c.toString() + " ";
+						}
+						sendDataToAllClients("pot cards: " + potCardsString);
+
+						// start first round
+						boolean firstRoundOver = false;
 						// go to make decision for each client
-						String clientDecision = this.clientActions(clientsList.get(turnTracker));
-						// now tell all clients about the above client's decision
+						while (!firstRoundOver) {
+							String clientDecision = this.clientActions(clientsList.get(turnTracker));
 
-						turnTracker++;
-						if (turnTracker > (numberOfPlayers-1)) turnTracker = 0;
+							turnTracker++;
+							if (turnTracker > (numberOfPlayers-1)) {
+								turnTracker = 0;
+								firstRoundOver = true;
+							}
 
-						System.out.println(turnTracker);
-						sendDataToAllClients(clientDecision);
+							System.out.println(turnTracker);
+							// now tell all clients about the above client's decision
+							sendDataToAllClients(clientDecision);
+						}
 
+						// start second round
+						boolean secondRoundOver = false;
+						turnTracker = 0;
+						// go to make decision for each client
+						while (!secondRoundOver) {
+							potCards.add(deck.deal());
 
+							// send pot cards to all clients
+							potCardsString = "";
+							for (Card c : potCards) {
+								potCardsString += c.toString() + " ";
+							}
+							sendDataToAllClients("pot cards: " + potCardsString);
+
+							String clientDecision = this.clientActions(clientsList.get(turnTracker));
+
+							turnTracker++;
+							if (turnTracker > (numberOfPlayers-1)) {
+								turnTracker = 0;
+								secondRoundOver = true;
+							}
+
+							System.out.println(turnTracker);
+							// now tell all clients about the above client's decision
+							sendDataToAllClients(clientDecision);
+						}
+
+						// start third round
+						boolean thirdRoundOver = false;
+						turnTracker = 0;
+						// go to make decision for each client
+						while (!thirdRoundOver) {
+							potCards.add(deck.deal());
+
+							// send pot cards to all clients
+							potCardsString = "";
+							for (Card c : potCards) {
+								potCardsString += c.toString() + " ";
+							}
+							sendDataToAllClients("pot cards: " + potCardsString);
+
+							String clientDecision = this.clientActions(clientsList.get(turnTracker));
+
+							turnTracker++;
+							if (turnTracker > (numberOfPlayers-1)) {
+								turnTracker = 0;
+								thirdRoundOver = true;
+							}
+
+							System.out.println(turnTracker);
+							// now tell all clients about the above client's decision
+							sendDataToAllClients(clientDecision);
+						}
 					}
 				}
 

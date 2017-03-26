@@ -9,8 +9,13 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.util.Scanner;
 
+import cardLibraries.Card;
+
 
 public class Client {
+	
+	// player associated with the client
+	static Player player;
 
 	public static void main(String[] args) {
 		String serverName = args[0];
@@ -37,7 +42,7 @@ public class Client {
 			int id = in.readInt();
 			// initialize Player object for this client - by default 
 			// initial money = $200
-			Player clientPlayer = new Player(name, id, 200);
+			player = new Player(name, id, 200);
 
 
 			while (true) {
@@ -55,6 +60,14 @@ public class Client {
 						System.out.println("Please type your decision:");
 						String decision = scan.nextLine();
 						out.writeUTF(decision);
+					}
+					else if (serverMsg.contains("hand")) {
+						String[] handCards = serverMsg.split(" ");
+						
+						for (int i = 1; i < 3; i++) {
+							String[] handDetails = handCards[i].split(":");
+							player.addCardToHand(new Card(handDetails[0], handDetails[1]));
+						}
 					}
 
 				}
