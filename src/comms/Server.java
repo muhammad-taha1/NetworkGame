@@ -10,40 +10,46 @@ import java.util.concurrent.CountDownLatch;
 
 import cardLibraries.Card;
 import cardLibraries.Deck;
+import gameLogistics.Player;
 
 
 public class Server extends Thread {
 	private final ServerSocket serverSocket;
 	/// the clientsList is used to keep a list of all clients connected to server. Used for broadcast
-	private final ArrayList<Socket> clientsList;
+	private final ArrayList<PlayerClientMap> playerClientMapList;
 	private int turnTracker = 0;
-	private final int numberOfPlayers = 2;
+	private final int numberOfPlayers = 1;
 
 	public Server(int port) throws IOException {
 		// port number specified when running on cmd as argument
 		serverSocket = new ServerSocket(port);
 		serverSocket.setSoTimeout(100000);
-		clientsList = new ArrayList<Socket>();	
+		playerClientMapList = new ArrayList<PlayerClientMap>();
 	}
 
-	public synchronized String clientActions (final Socket serveClient) {
+	public synchronized String clientActions (final PlayerClientMap playerClient, int lastBet) {
 
 		DataInputStream in = null;
 		DataOutputStream out = null;
 		System.out.println("Client action");
 
 		try {
-			out = new DataOutputStream(serveClient.getOutputStream());
-			in = new DataInputStream(serveClient.getInputStream());
+			out = new DataOutputStream(playerClient.client.getOutputStream());
+			in = new DataInputStream(playerClient.client.getInputStream());
 
 			// tell client of its turn by sending token
 			out.writeUTF("TOKEN");
-			while (in.available() <= 0) {
-				// wait for client to make decision
-			}
+			out.writeInt(playerClient.player.getMoney());
+			out.writeInt(lastBet);
 
 			// get client's decision
 			String clientMsg = in.readUTF();
+
+			// TODO: actions according to client's decision
+			if (clientMsg.contains("bet")) {
+				String[] bet = clientMsg.split(" ");
+				playerClient.player.bet(Double.parseDouble(bet[1]));
+			}
 			System.out.println("client says:" + clientMsg);
 
 			return clientMsg;
@@ -56,10 +62,10 @@ public class Server extends Thread {
 	}
 
 	public void sendDataToAllClients(String clientDecision) {
-		for (Socket client : clientsList) {
+		for (PlayerClientMap pc : playerClientMapList) {
 			try {
-				DataOutputStream out = new DataOutputStream(client.getOutputStream());
-				out.writeUTF("server says: " + clientDecision);
+				DataOutputStream out = new DataOutputStream(pc.client.getOutputStream());
+				out.writeUTF(clientDecision);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -69,38 +75,28 @@ public class Server extends Thread {
 	}
 
 
-	public synchronized void initializeClients(final Socket serveClient, final CountDownLatch latch) {
+	public synchronized void initializeClients(final PlayerClientMap playerClient, final CountDownLatch latch) {
 		Thread c = new Thread() {
 			@Override
 			public void run() {
 				System.out.println("Initializing a new client");
 
 				try {
-					// client-server comm. 
+					// client-server comm.
 					// get data from client and print it
-					DataInputStream in = new DataInputStream(serveClient.getInputStream());
-					System.out.println(in.readUTF());
-					// write output data as string to display on client
-					DataOutputStream out = new DataOutputStream(serveClient.getOutputStream());
-					out.writeUTF("Please enter your name");
-					// get data again
-					in = new DataInputStream(serveClient.getInputStream());
-
-					while (in.available() <= 0) {
-						// wait for client to type
-					}
-
+					DataInputStream in = new DataInputStream(playerClient.client.getInputStream());
 					String clientName = in.readUTF();
-					System.out.println("client " + clientName + " is connected on port " + serveClient.getPort());
-					// tell client about player object
-					// send client its id
-					System.out.println("Send id to client");
-					int id = clientsList.size();
-					out.writeInt(id);
+					// write output data as string to display on client
+					DataOutputStream out = new DataOutputStream(playerClient.client.getOutputStream());
 
+					int id = playerClientMapList.size();
+
+					playerClient.player = new Player(clientName, id, 200);
+
+					System.out.println("Player " + clientName +" successfully initialized, port " + playerClient.client.getPort());
 					latch.countDown();
 					while (true) {
-						// keep this background thread alive, just to keep each  
+						// keep this background thread alive, just to keep each
 						// client from disconnecting
 					}
 				}
@@ -122,17 +118,17 @@ public class Server extends Thread {
 	public void run() {
 		while(true) {
 			try {
-				if (clientsList.size() != numberOfPlayers) {
+				if (playerClientMapList.size() != numberOfPlayers) {
 					// initialize server
 					System.out.println("Welcome to poker server");
-					System.out.println("Waiting for client on port " + 
+					System.out.println("Waiting for client on port " +
 							serverSocket.getLocalPort() + "...");
 
 					// accept client
 					Socket server = serverSocket.accept();
 
 					// the arrayList clientsList keeps a list of clients in server
-					clientsList.add(server);
+					playerClientMapList.add(new PlayerClientMap(server, new Player("", 0, 200)));
 					System.out.println("wait for all clients to connect....");
 				}
 
@@ -141,8 +137,8 @@ public class Server extends Thread {
 
 					// initialize all clients
 					CountDownLatch latch = new CountDownLatch(numberOfPlayers);
-					for (Socket client : clientsList) {
-						this.initializeClients(client, latch);
+					for (PlayerClientMap pc : playerClientMapList) {
+						this.initializeClients(pc, latch);
 					}
 
 					try {
@@ -160,14 +156,18 @@ public class Server extends Thread {
 						ArrayList<Card> potCards = new ArrayList<Card>();
 
 						// deal cards to all clients
-						for (Socket client : clientsList) {
+						for (PlayerClientMap playerClient : playerClientMapList) {
 							try {
-								DataOutputStream out = new DataOutputStream(client.getOutputStream());
+								DataOutputStream out = new DataOutputStream(playerClient.client.getOutputStream());
 								// deal 2 hand cards
+								playerClient.player.addCardToHand(deck.deal());
+								playerClient.player.addCardToHand(deck.deal());
+
+								// tell client its hand cards
 								String handCards = "hand ";
-								handCards += deck.deal().toString();
-								handCards += " ";
-								handCards += deck.deal().toString();
+								handCards += playerClient.player.getHand().get(0).toString();
+								handCards += ":";
+								handCards +=  playerClient.player.getHand().get(1).toString();
 								out.writeUTF(handCards);
 							} catch (IOException e) {
 								// TODO Auto-generated catch block
@@ -183,15 +183,21 @@ public class Server extends Thread {
 						// send pot cards to all clients
 						String potCardsString = "";
 						for (Card c : potCards) {
-							potCardsString += c.toString() + " ";
+							potCardsString += c.toString() + ":";
 						}
-						sendDataToAllClients("pot cards: " + potCardsString);
+						potCardsString = potCardsString.substring(0, potCardsString.length() - 1);
+						sendDataToAllClients("potCards " + potCardsString);
 
 						// start first round
 						boolean firstRoundOver = false;
+						int lastBet = 0;
 						// go to make decision for each client
 						while (!firstRoundOver) {
-							String clientDecision = this.clientActions(clientsList.get(turnTracker));
+							String clientDecision = this.clientActions(playerClientMapList.get(turnTracker), lastBet);
+
+							if (clientDecision.contains("bet")) {
+								//lastBet += clientDecision.
+							}
 
 							turnTracker++;
 							if (turnTracker > (numberOfPlayers-1)) {
@@ -207,6 +213,7 @@ public class Server extends Thread {
 						// start second round
 						boolean secondRoundOver = false;
 						turnTracker = 0;
+						lastBet = 0;
 						// go to make decision for each client
 						while (!secondRoundOver) {
 							potCards.add(deck.deal());
@@ -214,11 +221,12 @@ public class Server extends Thread {
 							// send pot cards to all clients
 							potCardsString = "";
 							for (Card c : potCards) {
-								potCardsString += c.toString() + " ";
+								potCardsString += c.toString() + ":";
 							}
-							sendDataToAllClients("pot cards: " + potCardsString);
+							potCardsString = potCardsString.substring(0, potCardsString.length() - 1);
+							sendDataToAllClients("potCards " + potCardsString);
 
-							String clientDecision = this.clientActions(clientsList.get(turnTracker));
+							String clientDecision = this.clientActions(playerClientMapList.get(turnTracker), lastBet);
 
 							turnTracker++;
 							if (turnTracker > (numberOfPlayers-1)) {
@@ -233,6 +241,7 @@ public class Server extends Thread {
 
 						// start third round
 						boolean thirdRoundOver = false;
+						lastBet = 0;
 						turnTracker = 0;
 						// go to make decision for each client
 						while (!thirdRoundOver) {
@@ -241,11 +250,13 @@ public class Server extends Thread {
 							// send pot cards to all clients
 							potCardsString = "";
 							for (Card c : potCards) {
-								potCardsString += c.toString() + " ";
+								potCardsString += c.toString() + ":";
 							}
-							sendDataToAllClients("pot cards: " + potCardsString);
 
-							String clientDecision = this.clientActions(clientsList.get(turnTracker));
+							potCardsString = potCardsString.substring(0, potCardsString.length() - 1);
+							sendDataToAllClients("potCards " + potCardsString);
+
+							String clientDecision = this.clientActions(playerClientMapList.get(turnTracker), lastBet);
 
 							turnTracker++;
 							if (turnTracker > (numberOfPlayers-1)) {

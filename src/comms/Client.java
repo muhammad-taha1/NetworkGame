@@ -1,6 +1,4 @@
 package comms;
-import gameLogistics.Player;
-
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -9,13 +7,11 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.util.Scanner;
 
-import cardLibraries.Card;
-
+// This class is legacy now.. Use PokerClient project (JavaFx)
 
 public class Client {
-	
+
 	// player associated with the client
-	static Player player;
 
 	public static void main(String[] args) {
 		String serverName = args[0];
@@ -40,9 +36,9 @@ public class Client {
 			out.writeUTF(name);
 			// get id from server
 			int id = in.readInt();
-			// initialize Player object for this client - by default 
+			// initialize Player object for this client - by default
 			// initial money = $200
-			player = new Player(name, id, 200);
+			///player = new Player(name, id, 200);
 
 
 			while (true) {
@@ -55,7 +51,7 @@ public class Client {
 					// get server msgs
 					String serverMsg = in.readUTF();
 					System.out.println("Server says: " + serverMsg);
-					
+
 					if (serverMsg.equalsIgnoreCase("TOKEN")) {
 						System.out.println("Please type your decision:");
 						String decision = scan.nextLine();
@@ -63,10 +59,10 @@ public class Client {
 					}
 					else if (serverMsg.contains("hand")) {
 						String[] handCards = serverMsg.split(" ");
-						
+
 						for (int i = 1; i < 3; i++) {
 							String[] handDetails = handCards[i].split(":");
-							player.addCardToHand(new Card(handDetails[0], handDetails[1]));
+							//player.addCardToHand(new Card(handDetails[0], handDetails[1]));
 						}
 					}
 
