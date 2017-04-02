@@ -63,8 +63,20 @@ public class Player {
 		return money;
 	}
 
+	public void setMoney(int aMoney) {
+		this.money = aMoney;
+	}
+
 	public ArrayList<Card> getHand() {
 		return hand;
+	}
+
+	public void clearHand() {
+		hand.clear();
+	}
+
+	public void resetFold() {
+		hasFolded = false;
 	}
 
 	public boolean isHasFolded() {
