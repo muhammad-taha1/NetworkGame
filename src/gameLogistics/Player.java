@@ -67,6 +67,10 @@ public class Player {
 		this.money = aMoney;
 	}
 
+	public void addMoney(int aMoney) {
+		this.money += aMoney;
+	}
+
 	public ArrayList<Card> getHand() {
 		return hand;
 	}

@@ -106,6 +106,10 @@ public class Server extends Thread {
 					playerClient.player = new Player(clientName, id, 200);
 
 					System.out.println("Player " + clientName +" successfully initialized, port " + playerClient.client.getPort());
+
+					// tell the client about total number of participants
+					out.writeUTF("numberOfPlayers " + numberOfPlayers);
+
 					latch.countDown();
 					while (true) {
 						// keep this background thread alive, just to keep each
@@ -295,20 +299,21 @@ public class Server extends Thread {
 						}
 
 						// TODO: tell all clients the winner and update the winning players
-						int max = 0;
+						int max = 10;
 						int maxIdx = 0;
-						handType playerCombo = null;
+						handType playerCombo = Rules.handType.pair;
 						for (int i = 0; i < playerClientMapList.size(); i++) {
-							playerCombo = Rules.winHierarchy(playerClientMapList.get(i).player.getHand().toArray(new Card[2]), potCards.toArray(new Card[5]));
-							if (playerCombo.ordinal() < max) {
-								max = playerCombo.ordinal();
+							handType CurrentPlayerCombo = Rules.winHierarchy(playerClientMapList.get(i).player.getHand().toArray(new Card[2]), potCards.toArray(new Card[5]));
+							if (CurrentPlayerCombo.ordinal() < max) {
+								max = CurrentPlayerCombo.ordinal();
 								maxIdx = i;
+								playerCombo = CurrentPlayerCombo;
 							}
 							System.out.println("player " + playerClientMapList.get(i).player.getName() + " has " + playerCombo);
 						}
 
 						sendDataToAllClients(playerClientMapList.get(maxIdx).player.getName() + " won with " + playerCombo.toString());
-						playerClientMapList.get(maxIdx).player.setMoney(pot);
+						playerClientMapList.get(maxIdx).player.addMoney(pot);
 
 						// tell clients to update their funds and set pot money on display as 0
 						for (PlayerClientMap pc : playerClientMapList) {
